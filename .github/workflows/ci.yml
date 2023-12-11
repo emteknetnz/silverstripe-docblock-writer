@@ -24,7 +24,11 @@ jobs:
         tools: composer:v2
 
     - name: Composer install
-      run: composer install
+      run: |
+        composer config allow-plugins.composer/installers true
+        composer config allow-plugins.silverstripe/recipe-plugin true
+        composer config allow-plugins.silverstripe/vendor-plugin true
+        composer install
 
     - name: PHPUnit
       run: vendor/bin/phpunit

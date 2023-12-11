@@ -16,12 +16,12 @@ class DocblockTagWriterTaskTest extends SapphireTest
         TestObjectThrough::class,
     ];
 
-    public function testSomething()
+    public function testGetProcessableFiles()
     {
         $task = new DocblockTagWriterTask();
-        $pathFilter = basename(__FILE__);
-        var_dump($pathFilter);
-        // TODO write some tests
-        $this->assertTrue(true);
+        $pathFilter = __DIR__ . str_replace('.php', '', __FILE__);
+        $expected = [];
+        $actual = $task->getProcessableFiles($pathFilter);
+        $this->assertSame($expected, $actual);
     }
 }

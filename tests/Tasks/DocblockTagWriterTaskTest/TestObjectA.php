@@ -8,6 +8,8 @@ use SilverStripe\Security\Group;
 
 class TestObjectA extends DataObject implements TestOnly
 {
+    private static $table_name = 'DocblockTagWriterTaskTest_TestObjectA';
+
     private static $has_one = [
         'MyHasOne' => TestObjectB::class,
     ];

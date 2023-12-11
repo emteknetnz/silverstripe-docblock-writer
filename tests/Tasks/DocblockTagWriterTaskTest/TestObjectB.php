@@ -8,6 +8,8 @@ use SilverStripe\Security\Group;
 
 class TestObjectB extends DataObject implements TestOnly
 {
+    private static $table_name = 'DocblockTagWriterTaskTest_TestObjectB';
+
     private static $belongs_many_many = [
         'SomeManyManys' => TestObjectA::class,
     ];

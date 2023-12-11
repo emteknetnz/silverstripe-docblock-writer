@@ -24,7 +24,7 @@ use SilverStripe\ORM\DataObject;
  * Adds class level docblock @method tags to DataObjects and Extensions for ORM private static proerties
  * `has_one`, `one_many` and `many_many`.
  *
- * Usage: vendor/bin/sake dev/tasks/TODO_NAMESPACE/DocBlockTagWriterTask <path>
+ * Usage: vendor/bin/sake dev/tasks/dev/tasks/SilverStripe-DockblockWriter-Tasks-DocblockTagWriterTask <path>
  */
 class DocblockTagWriterTask extends BuildTask
 {
@@ -76,6 +76,9 @@ class DocblockTagWriterTask extends BuildTask
             $classInfo->getValidSubClasses(DataObject::class),
             $classInfo->getValidSubClasses(Extension::class),
         );
+        // $c = array_values($dataClasses);
+        // sort($c);
+        // print_r($c);
         foreach ($dataClasses as $dataClass) {
             $path = (new ReflectionClass($dataClass))->getFileName();
             if (!$this->shouldProcessFile($path, $pathFilter)) {
@@ -83,7 +86,7 @@ class DocblockTagWriterTask extends BuildTask
             }
             $files[] = [
                 'path' => $path,
-                'dataClass' => $dataClass,
+                'dataClass' => $dataClass, // TODO: rename dataClass, doesn't make sense for Extensions
             ];
         }
         return $files;
@@ -303,10 +306,17 @@ class DocblockTagWriterTask extends BuildTask
     {
         $args = $request->getVars()['args'] ?? [];
         if (empty($args)) {
-            echo "Usage: vendor/bin/sake dev/tasks/AnnotatorTask <path>\n";
+            $task = 'dev/tasks/SilverStripe-DockblockWriter-Tasks-DocblockTagWriterTask';
+            echo "Usage: vendor/bin/sake $task <path>\n";
             die;
         }
-        return Controller::join_links(BASE_PATH, $args[0]);
+        $path = $args[0];
+        // Absolute path
+        if (strpos($path, BASE_PATH) === 0) {
+            return $path;
+        }
+        // Relative path
+        return Controller::join_links(BASE_PATH, $path);
     }
 
     private function getProperty(string $dataClass, string $property): array

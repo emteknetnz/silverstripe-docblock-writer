@@ -1,5 +1,5 @@
 {
-    "name": "silverstripe/docblock-writer",
+    "name": "emteknetnz/docblock-writer",
     "type": "silverstripe-vendormodule",
     "license": "BSD-3-Clause",
     "require": {

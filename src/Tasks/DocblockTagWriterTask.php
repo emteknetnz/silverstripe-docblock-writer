@@ -37,71 +37,68 @@ class DocblockTagWriterTask extends BuildTask
         $pathFilter = $this->getPathFilter($request);
         foreach ($this->getProcessableFiles($pathFilter) as $file) {
             $path = $file['path'];
-            $dataClass = $file['dataClass'];
-            // Read the PHP file
+            $className = $file['className'];
             $contents = file_get_contents($path);
-            $class = $this->getClass($contents, $path);
-            // Extract existing docblock
-            $comment = $class->getComments()[0] ?? null;
-            $currentDocblock = $comment ? $comment->getText() : '';
-            // Create new docblock
-            $newDocblockLines = $this->getNewDocblockLines($currentDocblock);
-            $newDocblockMethods = $this->getNewDocblockMethods($dataClass, $contents);
-            $newDocblockLines = array_merge($newDocblockLines, $newDocblockMethods);
-            $newDocblockLines = $this->cleanNewDocblockLines($newDocblockLines);
-            // Skip to next file if there is no new docblock to write
-            if (empty($newDocblockLines)) {
-                continue;
-            }
-            $newContents = $this->addNewDocblockLinesToContents($newDocblockLines, $contents, $currentDocblock, $class);
-            // Skip if docblock is unchanged
+            $newDocblock = $this->createNewDocblock($className, $contents, $path);
+            $newContents = $this->addNewDocblockToContents($newDocblock, $contents, $path);
             if ($newContents === $contents) {
                 continue;
             }
-            // Update PHP file with new docblock
             file_put_contents($path, $newContents);
             echo "Wrote to $path\n";
         }
-        die;
+    }
+
+    public function createNewDocblock(string $className, string $contents, string $path): string
+    {
+        $currentDocblock = $this->getCurrentDocblock($contents, $path);
+        $newDocblockLines = $this->getNewDocblockLines($currentDocblock);
+        $newDocblockMethods = $this->getNewDocblockMethods($className, $contents);
+        $newDocblockLines = array_merge($newDocblockLines, $newDocblockMethods);
+        $newDocblockLines = $this->cleanNewDocblockLines($newDocblockLines);
+        if (empty($newDocblockLines)) {
+            return '';
+        }
+        $newDocblock = "/**\n" . implode("\n", $newDocblockLines) . "\n */";
+        return $newDocblock;
     }
 
     /**
-     * @string $pathFilter The path to filter files by
+     * @param string $pathFilter The path to filter files by
      */
     public function getProcessableFiles(string $pathFilter): array
     {
         $files = [];
         $classInfo = new ClassInfo();
-        $dataClasses = array_merge(
+        $classNamees = array_merge(
             $classInfo->getValidSubClasses(DataObject::class),
             $classInfo->getValidSubClasses(Extension::class),
         );
-        foreach ($dataClasses as $dataClass) {
-            $path = (new ReflectionClass($dataClass))->getFileName();
+        foreach ($classNamees as $className) {
+            $path = (new ReflectionClass($className))->getFileName();
             if (strpos($path, $pathFilter) !== 0) {
                 continue;
             }
             $files[] = [
                 'path' => $path,
-                'dataClass' => $dataClass, // TODO: rename dataClass, doesn't make sense for Extensions
+                'className' => $className,
             ];
         }
         return $files;
     }
 
-    private function addNewDocblockLinesToContents(
-        array $newDocblockLines,
+    private function addNewDocblockToContents(
+        string $newDocblock,
         string $contents,
-        string $currentDocblock,
-        Class_ $class
+        string $path
     ): string {
-        // Create new docblock
-        $newDocblock = "/**\n" . implode("\n", $newDocblockLines) . "\n */";
+        $currentDocblock = $this->getCurrentDocblock($contents, $path);
         if ($currentDocblock) {
             // Replace old docblock if exists
             $contents = str_replace($currentDocblock, $newDocblock, $contents);
         } else {
             // Add in new docblock if one does not yet exist
+            $class = $this->getClass($contents, $path);
             $pos = $class->getStartFilePos();
             $contents = substr($contents, 0, $pos) . $newDocblock . "\n" . substr($contents, $pos);
         }
@@ -157,10 +154,13 @@ class DocblockTagWriterTask extends BuildTask
         return $lines;
     }
 
-    private function cleanRelationClass(string $relationClass, array $importedClassNameMap): string
+    private function cleanRelationClass(string $relationClass): string
     {
+        // Remove any suffixed relation identifier
         $relationClass = preg_replace('#\.[a-zA-Z0-9]+$#', '', $relationClass);
-        $relationClass = $importedClassNameMap[$relationClass] ?? $relationClass;
+        // Use short class name
+        $classInfo = new ClassInfo();
+        $relationClass = $classInfo->shortName($relationClass);
         return $relationClass;
     }
 
@@ -217,22 +217,12 @@ class DocblockTagWriterTask extends BuildTask
         return $ret;
     }
 
-    private function getImportedClassNameMap(string $contents): array
+    private function getCurrentDocblock(string $contents, string $path): string
     {
-        $ret = [];
-        $classInfo = new ClassInfo();
-        preg_match_all("#^use (.+);$#m", $contents, $matches);
-        for ($i = 0; $i < count($matches[0]); $i++) {
-            $fqcn = $matches[1][$i];
-            $ret[$fqcn] = $classInfo->shortName($fqcn);
-        }
-        preg_match_all("#^use (.+) as (.+);$#m", $contents, $matches);
-        for ($i = 0; $i < count($matches[0]); $i++) {
-            $fqcn = $matches[1][$i];
-            $alias = $matches[2][$i];
-            $ret[$fqcn] = $alias;
-        }
-        return $ret;
+        $class = $this->getClass($contents, $path);
+        $comment = $class->getComments()[0] ?? null;
+        $currentDocblock = $comment ? $comment->getText() : '';
+        return $currentDocblock;
     }
 
     private function getNewDocblockLines(string $currentDocblock): array
@@ -251,28 +241,28 @@ class DocblockTagWriterTask extends BuildTask
         return $lines;
     }
 
-    private function getNewDocblockMethods(string $dataClass, string $contents): array
+    private function getNewDocblockMethods(string $className, string $contents): array
     {
         $methods = [];
-        $importedClassNameMap = $this->getImportedClassNameMap($contents);
         // Read relation config and add it to $methods array
         // using reflection rather than instantiating dataobject
         // ReflectionProperty
-        $hasOne = $this->getProperty($dataClass, 'has_one');
-        $hasMany = $this->getProperty($dataClass, 'has_many');
-        $manyMany = $this->getProperty($dataClass, 'many_many');
+        $hasOne = $this->getProperty($className, 'has_one');
+        $hasMany = $this->getProperty($className, 'has_many');
+        $manyMany = $this->getProperty($className, 'many_many');
+        $belongsManyMany = $this->getProperty($className, 'belongs_many_many');
         foreach ($hasOne as $relationName => $relationClass) {
             if (is_array($relationClass)) {
                 throw new Exception('has_one fancy relation not supported yet');
             }
-            $relationClass = $this->cleanRelationClass($relationClass, $importedClassNameMap);
+            $relationClass = $this->cleanRelationClass($relationClass);
             $methods[] = " * @method $relationClass $relationName()";
         }
         foreach ($hasMany as $relationName => $relationClass) {
             if (is_array($relationClass)) {
                 throw new Exception('unknown fancy has_many relation encountered');
             }
-            $relationClass = $this->cleanRelationClass($relationClass, $importedClassNameMap);
+            $relationClass = $this->cleanRelationClass($relationClass);
             $methods[] = " * @method SilverStripe\ORM\HasManyList<$relationClass> $relationName()";
         }
         foreach ($manyMany as $relationName => $relationClass) {
@@ -284,8 +274,15 @@ class DocblockTagWriterTask extends BuildTask
                 $throughConfig = $relationClass['through']::config();
                 $throughHasOne = $throughConfig->get('has_one', Config::UNINHERITED);
                 $relationClass = $throughHasOne[$relationClass['to']];
-                $relationClass = $this->cleanRelationClass($relationClass, $importedClassNameMap);
             }
+            $relationClass = $this->cleanRelationClass($relationClass);
+            $methods[] = " * @method SilverStripe\ORM\ManyManyList<$relationClass> $relationName()";
+        }
+        foreach ($belongsManyMany as $relationName => $relationClass) {
+            if (is_array($relationClass)) {
+                throw new Exception('unknown fancy has_many relation encountered');
+            }
+            $relationClass = $this->cleanRelationClass($relationClass);
             $methods[] = " * @method SilverStripe\ORM\ManyManyList<$relationClass> $relationName()";
         }
         // Sort @methods
@@ -316,9 +313,9 @@ class DocblockTagWriterTask extends BuildTask
         return Controller::join_links(BASE_PATH, $path);
     }
 
-    private function getProperty(string $dataClass, string $property): array
+    private function getProperty(string $className, string $property): array
     {
-        $properties = (new ReflectionClass($dataClass))->getProperties();
+        $properties = (new ReflectionClass($className))->getProperties();
         /** @var ReflectionProperty $prop */
         $prop = array_values(array_filter($properties, function ($p) use ($property) {
             /** @var ReflectionProperty $p */
@@ -329,6 +326,6 @@ class DocblockTagWriterTask extends BuildTask
         }
         $prop->setAccessible(true);
         // Use new rather than ::create() because Extension subclasses are not injectable
-        return $prop->getValue(new $dataClass());
+        return $prop->getValue(new $className());
     }
 }

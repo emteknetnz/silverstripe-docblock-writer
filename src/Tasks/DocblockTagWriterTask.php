@@ -23,7 +23,7 @@ use SilverStripe\ORM\DataObject;
 /**
  * Adds class level docblock @method tags to DataObjects and Extensions for ORM private static proerties
  * `has_one`, `one_many` and `many_many`.
- * 
+ *
  * Usage: vendor/bin/sake dev/tasks/TODO_NAMESPACE/DocBlockTagWriterTask <path>
  */
 class DocblockTagWriterTask extends BuildTask

@@ -1,5 +1,7 @@
 <?php
 
+namespace SilverStripe\DocblockWriter\Tests\Tasks;
+
 use SilverStripe\Dev\SapphireTest;
 
 class DocblockTagWriterTaskTest extends SapphireTest

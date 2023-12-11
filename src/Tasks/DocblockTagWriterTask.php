@@ -1,6 +1,6 @@
 <?php
 
-namespace SilverStripe\DockblockWriter\Tasks;
+namespace emteknetnz\DocblockWriter\Tasks;
 
 use Exception;
 use ReflectionClass;
@@ -24,7 +24,7 @@ use SilverStripe\ORM\DataObject;
  * Adds class level docblock @method tags to DataObjects and Extensions for ORM private static proerties
  * `has_one`, `one_many` and `many_many`.
  *
- * Usage: vendor/bin/sake dev/tasks/dev/tasks/SilverStripe-DockblockWriter-Tasks-DocblockTagWriterTask <path>
+ * Usage: vendor/bin/sake dev/tasks/dev/tasks/SilverStripe-DocblockWriter-Tasks-DocblockTagWriterTask <path>
  */
 class DocblockTagWriterTask extends BuildTask
 {
@@ -76,12 +76,9 @@ class DocblockTagWriterTask extends BuildTask
             $classInfo->getValidSubClasses(DataObject::class),
             $classInfo->getValidSubClasses(Extension::class),
         );
-        // $c = array_values($dataClasses);
-        // sort($c);
-        // print_r($c);
         foreach ($dataClasses as $dataClass) {
             $path = (new ReflectionClass($dataClass))->getFileName();
-            if (!$this->shouldProcessFile($path, $pathFilter)) {
+            if (strpos($path, $pathFilter) !== 0) {
                 continue;
             }
             $files[] = [
@@ -306,7 +303,7 @@ class DocblockTagWriterTask extends BuildTask
     {
         $args = $request->getVars()['args'] ?? [];
         if (empty($args)) {
-            $task = 'dev/tasks/SilverStripe-DockblockWriter-Tasks-DocblockTagWriterTask';
+            $task = 'dev/tasks/SilverStripe-DocblockWriter-Tasks-DocblockTagWriterTask';
             echo "Usage: vendor/bin/sake $task <path>\n";
             die;
         }
@@ -333,20 +330,5 @@ class DocblockTagWriterTask extends BuildTask
         $prop->setAccessible(true);
         // Use new rather than ::create() because Extension subclasses are not injectable
         return $prop->getValue(new $dataClass());
-    }
-
-    private function shouldProcessFile(string $path, string $pathFilter): bool
-    {
-        /// Skip if the file is not in the path filter
-        if (strpos($path, $pathFilter) !== 0) {
-            return false;
-        }
-        // Exclude vendor and thirdpaty folders
-        $vendorFolder = Controller::join_links(BASE_PATH, 'vendor');
-        $thirdPartyFolder = Controller::join_links(BASE_PATH, 'thirdparty');
-        if (strpos($path, $vendorFolder) !== false || strpos($path, $thirdPartyFolder) !== false) {
-            return false;
-        }
-        return true;
     }
 }

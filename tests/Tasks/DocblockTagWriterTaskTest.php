@@ -3,10 +3,11 @@
 namespace emteknetnz\DocblockWriter\Tests\Tasks;
 
 use SilverStripe\Dev\SapphireTest;
-use SilverStripe\DocblockWriter\Tests\Tasks\DocblockTagWriterTaskTest\TestObjectA;
-use SilverStripe\DocblockWriter\Tests\Tasks\DocblockTagWriterTaskTest\TestObjectB;
-use SilverStripe\DocblockWriter\Tests\Tasks\DocblockTagWriterTaskTest\TestObjectThrough;
-use SilverStripe\DockblockWriter\Tasks\DocblockTagWriterTask;
+use emteknetnz\DocblockWriter\Tests\Tasks\DocblockTagWriterTaskTest\TestObjectA;
+use emteknetnz\DocblockWriter\Tests\Tasks\DocblockTagWriterTaskTest\TestObjectB;
+use emteknetnz\DocblockWriter\Tests\Tasks\DocblockTagWriterTaskTest\TestObjectThrough;
+use emteknetnz\DocblockWriter\Tests\Tasks\DocblockTagWriterTaskTest\TestExtension;
+use emteknetnz\DocblockWriter\Tasks\DocblockTagWriterTask;
 
 class DocblockTagWriterTaskTest extends SapphireTest
 {
@@ -19,8 +20,25 @@ class DocblockTagWriterTaskTest extends SapphireTest
     public function testGetProcessableFiles()
     {
         $task = new DocblockTagWriterTask();
-        $pathFilter = __DIR__ . str_replace('.php', '', __FILE__);
-        $expected = [];
+        $pathFilter = str_replace('.php', '', __FILE__);
+        $expected = [
+            [
+                'path' => $pathFilter . '/TestObjectA.php',
+                'dataClass' => TestObjectA::class,
+            ],
+            [
+                'path' => $pathFilter . '/TestObjectB.php',
+                'dataClass' => TestObjectB::class,
+            ],
+            [
+                'path' => $pathFilter . '/TestObjectThrough.php',
+                'dataClass' => TestObjectThrough::class,
+            ],
+            [
+                'path' => $pathFilter . '/TestExtension.php',
+                'dataClass' => TestExtension::class,
+            ],
+        ];
         $actual = $task->getProcessableFiles($pathFilter);
         $this->assertSame($expected, $actual);
     }

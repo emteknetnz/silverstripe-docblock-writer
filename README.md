@@ -9,4 +9,4 @@ Silverstripe CMS squad either in a dev or a CI environment. It is not intended t
 
 `composer install --dev silverstripe/docblock-writer`
 
-`vendor/bin/sake dev/tasks/SilverStripe-DockblockWriter-Tasks-DocblockTagWriterTask <path>`
+`vendor/bin/sake dev/tasks/SilverStripe-DocblockWriter-Tasks-DocblockTagWriterTask <path>`

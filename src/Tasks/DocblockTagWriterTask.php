@@ -1,6 +1,6 @@
 <?php
 
-namespace emteknetnz\DocblockWriter\Tasks;
+namespace SilverStripe\DocblockWriter\Tasks;
 
 use Exception;
 use ReflectionClass;

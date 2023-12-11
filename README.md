@@ -1,6 +1,6 @@
 # Docblock writer
 
-Contains a task  `DocblockTagWriterTask` that automatically writes docblock `@method` tag's on DataObjects and Extension's.
+This module contains a task `DocblockTagWriterTask` that automatically writes docblock `@method` tag's on `DataObject`'s and `Extension`'s.
 
 This is only intended to be used on Silverstripe modules that are either commercially supported, or managed by the
 Silverstripe CMS squad either in a dev or a CI environment. It is not intended to be used on regular projects.

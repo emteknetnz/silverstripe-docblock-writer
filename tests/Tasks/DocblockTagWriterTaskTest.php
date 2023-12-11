@@ -1,13 +1,13 @@
 <?php
 
-namespace emteknetnz\DocblockWriter\Tests\Tasks;
+namespace SilverStripe\DocblockWriter\Tests\Tasks;
 
 use SilverStripe\Dev\SapphireTest;
-use emteknetnz\DocblockWriter\Tests\Tasks\DocblockTagWriterTaskTest\TestObjectA;
-use emteknetnz\DocblockWriter\Tests\Tasks\DocblockTagWriterTaskTest\TestObjectB;
-use emteknetnz\DocblockWriter\Tests\Tasks\DocblockTagWriterTaskTest\TestObjectThrough;
-use emteknetnz\DocblockWriter\Tests\Tasks\DocblockTagWriterTaskTest\TestExtension;
-use emteknetnz\DocblockWriter\Tasks\DocblockTagWriterTask;
+use SilverStripe\DocblockWriter\Tests\Tasks\DocblockTagWriterTaskTest\TestObjectA;
+use SilverStripe\DocblockWriter\Tests\Tasks\DocblockTagWriterTaskTest\TestObjectB;
+use SilverStripe\DocblockWriter\Tests\Tasks\DocblockTagWriterTaskTest\TestObjectThrough;
+use SilverStripe\DocblockWriter\Tests\Tasks\DocblockTagWriterTaskTest\TestExtension;
+use SilverStripe\DocblockWriter\Tasks\DocblockTagWriterTask;
 use PHPUnit\Util\Test;
 use ReflectionObject;
 

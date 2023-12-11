@@ -35,16 +35,9 @@ class DocblockTagWriterTask extends BuildTask
             die;
         }
         $pathFilter = $this->getPathFilter($request);
-        $classInfo = new ClassInfo();
-        $dataClasses = array_merge(
-            $classInfo->getValidSubClasses(DataObject::class),
-            $classInfo->getValidSubClasses(Extension::class),
-        );
-        foreach ($dataClasses as $dataClass) {
-            $path = (new ReflectionClass($dataClass))->getFileName();
-            if (!$this->shouldProcessFile($path, $pathFilter)) {
-                continue;
-            }
+        foreach ($this->getProcessableFiles($pathFilter) as $file) {
+            $path = $file['path'];
+            $dataClass = $file['dataClass'];
             // Read the PHP file
             $contents = file_get_contents($path);
             $class = $this->getClass($contents, $path);
@@ -70,6 +63,30 @@ class DocblockTagWriterTask extends BuildTask
             echo "Wrote to $path\n";
         }
         die;
+    }
+
+    /**
+     * @string $pathFilter The path to filter files by
+     */
+    public function getProcessableFiles(string $pathFilter): array
+    {
+        $files = [];
+        $classInfo = new ClassInfo();
+        $dataClasses = array_merge(
+            $classInfo->getValidSubClasses(DataObject::class),
+            $classInfo->getValidSubClasses(Extension::class),
+        );
+        foreach ($dataClasses as $dataClass) {
+            $path = (new ReflectionClass($dataClass))->getFileName();
+            if (!$this->shouldProcessFile($path, $pathFilter)) {
+                continue;
+            }
+            $files[] = [
+                'path' => $path,
+                'dataClass' => $dataClass,
+            ];
+        }
+        return $files;
     }
 
     private function addNewDocblockLinesToContents(

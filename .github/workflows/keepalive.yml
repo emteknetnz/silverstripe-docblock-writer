@@ -1,16 +1,16 @@
 name: Keepalive
 
 on:
-  workflow_dispatch:
-  # The 4th of every month at 10:45am UTC
+  # At 2:10 PM UTC, on day 11 of the month
   schedule:
-    - cron: '45 10 4 * *'
+    - cron: '10 14 11 * *'
+  workflow_dispatch:
 
 jobs:
   keepalive:
     name: Keepalive
-    # Only run cron on the silverstripe account
-    if: (github.event_name == 'schedule' && github.repository_owner == 'silverstripe') || (github.event_name != 'schedule')
+    # Only run cron on the emteknetnz account
+    if: (github.event_name == 'schedule' && github.repository_owner == 'emteknetnz') || (github.event_name != 'schedule')
     runs-on: ubuntu-latest
     steps:
       - name: Keepalive

@@ -49,49 +49,14 @@ class DocblockTagWriterTask extends BuildTask
         }
     }
 
-    public function createNewDocblock(string $className, string $contents, string $path): string
-    {
-        $currentDocblock = $this->getCurrentDocblock($contents, $path);
-        $newDocblockLines = $this->getNewDocblockLines($currentDocblock);
-        $newDocblockMethods = $this->getNewDocblockMethods($className, $contents);
-        $newDocblockLines = array_merge($newDocblockLines, $newDocblockMethods);
-        $newDocblockLines = $this->cleanNewDocblockLines($newDocblockLines);
-        if (empty($newDocblockLines)) {
-            return '';
-        }
-        $newDocblock = "/**\n" . implode("\n", $newDocblockLines) . "\n */";
-        return $newDocblock;
-    }
-
-    /**
-     * @param string $pathFilter The path to filter files by
-     */
-    public function getProcessableFiles(string $pathFilter): array
-    {
-        $files = [];
-        $classInfo = new ClassInfo();
-        $classNamees = array_merge(
-            $classInfo->getValidSubClasses(DataObject::class),
-            $classInfo->getValidSubClasses(Extension::class),
-        );
-        foreach ($classNamees as $className) {
-            $path = (new ReflectionClass($className))->getFileName();
-            if (strpos($path, $pathFilter) !== 0) {
-                continue;
-            }
-            $files[] = [
-                'path' => $path,
-                'className' => $className,
-            ];
-        }
-        return $files;
-    }
-
     private function addNewDocblockToContents(
         string $newDocblock,
         string $contents,
         string $path
     ): string {
+        if (empty($newDocblock)) {
+            return $contents;
+        }
         $currentDocblock = $this->getCurrentDocblock($contents, $path);
         if ($currentDocblock) {
             // Replace old docblock if exists
@@ -162,6 +127,20 @@ class DocblockTagWriterTask extends BuildTask
         $classInfo = new ClassInfo();
         $relationClass = $classInfo->shortName($relationClass);
         return $relationClass;
+    }
+
+    private function createNewDocblock(string $className, string $contents, string $path): string
+    {
+        $currentDocblock = $this->getCurrentDocblock($contents, $path);
+        $newDocblockLines = $this->getNewDocblockLines($currentDocblock);
+        $newDocblockMethods = $this->getNewDocblockMethods($className, $contents);
+        $newDocblockLines = array_merge($newDocblockLines, $newDocblockMethods);
+        $newDocblockLines = $this->cleanNewDocblockLines($newDocblockLines);
+        if (empty($newDocblockLines)) {
+            return '';
+        }
+        $newDocblock = "/**\n" . implode("\n", $newDocblockLines) . "\n */";
+        return $newDocblock;
     }
 
     private function getAst(string $contents): array
@@ -311,6 +290,27 @@ class DocblockTagWriterTask extends BuildTask
         }
         // Relative path
         return Controller::join_links(BASE_PATH, $path);
+    }
+
+    private function getProcessableFiles(string $pathFilter): array
+    {
+        $files = [];
+        $classInfo = new ClassInfo();
+        $classNamees = array_merge(
+            $classInfo->getValidSubClasses(DataObject::class),
+            $classInfo->getValidSubClasses(Extension::class),
+        );
+        foreach ($classNamees as $className) {
+            $path = (new ReflectionClass($className))->getFileName();
+            if (strpos($path, $pathFilter) !== 0) {
+                continue;
+            }
+            $files[] = [
+                'path' => $path,
+                'className' => $className,
+            ];
+        }
+        return $files;
     }
 
     private function getProperty(string $className, string $property): array

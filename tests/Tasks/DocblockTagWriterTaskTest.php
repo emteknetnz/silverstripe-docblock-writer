@@ -9,6 +9,7 @@ use emteknetnz\DocblockWriter\Tests\Tasks\DocblockTagWriterTaskTest\TestObjectTh
 use emteknetnz\DocblockWriter\Tests\Tasks\DocblockTagWriterTaskTest\TestExtension;
 use emteknetnz\DocblockWriter\Tasks\DocblockTagWriterTask;
 use PHPUnit\Util\Test;
+use ReflectionObject;
 
 class DocblockTagWriterTaskTest extends SapphireTest
 {
@@ -40,15 +41,21 @@ class DocblockTagWriterTaskTest extends SapphireTest
                 'className' => TestExtension::class,
             ],
         ];
-        $actual = $task->getProcessableFiles($pathFilter);
+        $reflector = new ReflectionObject($task);
+        $method = $reflector->getMethod('getProcessableFiles');
+        $method->setAccessible(true);
+        $actual = $method->invoke($task, $pathFilter);
         $this->assertSame($expected, $actual);
     }
 
     public function testCreateNewDocblock()
     {
         $task = new DocblockTagWriterTask();
+        $reflector = new ReflectionObject($task);
+        $method = $reflector->getMethod('createnewDocblock');
+        $method->setAccessible(true);
         $pathFilter = $this->getPathFilter();
-        // TestObjectA
+        // TestObjectA - has_one, has_many, many_many, many_many_through
         $className = TestObjectA::class;
         $path = "$pathFilter/TestObjectA.php";
         $contents = file_get_contents($path);
@@ -60,18 +67,22 @@ class DocblockTagWriterTaskTest extends SapphireTest
          * @method SilverStripe\ORM\ManyManyList<TestObjectB> MyManyManys()
          */
         EOT;
-        $actual = $task->createNewDocblock($className, $contents, $path);
+        $actual = $method->invoke($task, $className, $contents, $path);
         $this->assertSame($expected, $actual);
-        // TestObjectB
+        // TestObjectB - belongs_many_many, existing docblock with deprecated tag
         $className = TestObjectB::class;
         $path = "$pathFilter/TestObjectB.php";
         $contents = file_get_contents($path);
         $expected = <<<EOT
         /**
+         * This is my existing docblock. Note this class is NOT deprecated it is for unit testing
+         *
          * @method SilverStripe\ORM\ManyManyList<TestObjectA> SomeManyManys()
+         *
+         * @deprecated This is for testing that the deprecated tag goes below added method tags
          */
         EOT;
-        $actual = $task->createNewDocblock($className, $contents, $path);
+        $actual = $method->invoke($task, $className, $contents, $path);
         $this->assertSame($expected, $actual);
     }
 

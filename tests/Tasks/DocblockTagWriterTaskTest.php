@@ -1,6 +1,6 @@
 <?php
 
-namespace SilverStripe\DocblockWriter\Tests\Tasks;
+namespace emteknetnz\DocblockWriter\Tests\Tasks;
 
 use SilverStripe\Dev\SapphireTest;
 use SilverStripe\DocblockWriter\Tests\Tasks\DocblockTagWriterTaskTest\TestObjectA;

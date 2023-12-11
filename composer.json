@@ -12,8 +12,8 @@
     },
     "autoload": {
         "psr-4": {
-            "SilverStripe\\DocblockWriter\\": "src/",
-            "SilverStripe\\DocblockWriter\\Tests\\": "tests/"
+            "emteknetnz\\DocblockWriter\\": "src/",
+            "emteknetnz\\DocblockWriter\\Tests\\": "tests/"
         }
     },
     "minimum-stability": "dev",

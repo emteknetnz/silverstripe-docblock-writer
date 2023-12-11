@@ -1,6 +1,6 @@
 <?php
 
-namespace SilverStripe\DocblockWriter\Tests\Tasks\DocblockTagWriterTaskTest;
+namespace emteknetnz\DocblockWriter\Tests\Tasks\DocblockTagWriterTaskTest;
 
 use SilverStripe\Dev\TestOnly;
 use SilverStripe\ORM\DataObject;

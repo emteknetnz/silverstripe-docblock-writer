@@ -16,9 +16,11 @@ use SilverStripe\Control\HTTPRequest;
 use SilverStripe\Core\ClassInfo;
 use SilverStripe\Core\Config\Config;
 use SilverStripe\Core\Config\Config_ForClass;
+use SilverStripe\Core\Environment;
 use SilverStripe\Core\Extension;
 use SilverStripe\Dev\BuildTask;
 use SilverStripe\ORM\DataObject;
+use Symfony\Component\Process\Process;
 
 /**
  * Adds class level docblock @method tags to DataObjects and Extensions for ORM private static proerties
@@ -30,23 +32,53 @@ class DocblockTagWriterTask extends BuildTask
 {
     public function run($request)
     {
+        $token = Environment::getEnv('GITHUB_TOKEN');
+        if (!$token) {
+            echo "Set GITHUB_TOKEN in .env\n";
+            die;
+        }
         if (!Director::isDev()) {
             echo "This task can only be run in dev mode\n";
             die;
         }
-        $pathFilter = $this->getPathFilter($request);
-        foreach ($this->getProcessableFiles($pathFilter) as $file) {
-            $path = $file['path'];
-            $className = $file['className'];
-            $contents = file_get_contents($path);
-            $newDocblock = $this->createNewDocblock($className, $contents, $path);
-            $newContents = $this->addNewDocblockToContents($newDocblock, $contents, $path);
-            if ($newContents === $contents) {
+        // tractorcow, colymba
+        $vendors = ['silverstripe', 'dnadesign', 'symbiote', 'cwp'];
+        foreach ($vendors as $vendor) {
+            if (!file_exists("/var/www/vendor/$vendor")) {
                 continue;
             }
-            file_put_contents($path, $newContents);
-            echo "Wrote to $path\n";
+            foreach (scandir("/var/www/vendor/$vendor") as $file) {
+                if ($file === '.' || $file === '..') {
+                    continue;
+                }
+                if ($file !== 'framework') {
+                    continue;
+                }
+                // $pathFilter = $this->getPathFilter($request);
+                $pathFilter = "/var/www/vendor/$vendor/$file";
+                foreach ($this->getProcessableFiles($pathFilter) as $file) {
+                    $path = $file['path'];
+                    $className = $file['className'];
+                    $contents = file_get_contents($path);
+                    $newDocblock = $this->createNewDocblock($className, $contents, $path);
+                    $newContents = $this->addNewDocblockToContents($newDocblock, $contents, $path);
+                    if ($newContents === $contents) {
+                        continue;
+                    }
+                    file_put_contents($path, $newContents);
+                    echo "Wrote to $path\n";
+                }
+            }
         }
+        // git
+    }
+
+    private function cmd(array $cmd, string $dir)
+    {
+        $process = new Process($cmd, $dir, ['GITHUB_TOKEN' => Environment::getEnv('GITHUB_TOKEN')]);
+        $process->run();
+        $out = $process->getOutput();
+        return $out;
     }
 
     private function addNewDocblockToContents(
@@ -204,6 +236,18 @@ class DocblockTagWriterTask extends BuildTask
         return $currentDocblock;
     }
 
+    private function getImportedClassNameMap(string $contents): array
+    {
+        $ret = [];
+        $classInfo = new ClassInfo();
+        preg_match_all("#^use (.+);$#m", $contents, $matches);
+        for ($i = 0; $i < count($matches[0]); $i++) {
+            $fqcn = $matches[1][$i];
+            $ret[$fqcn] = $classInfo->shortName($fqcn);
+        }
+        return $ret;
+    }
+
     private function getNewDocblockLines(string $currentDocblock): array
     {
         $tmp = $currentDocblock;
@@ -223,6 +267,8 @@ class DocblockTagWriterTask extends BuildTask
     private function getNewDocblockMethods(string $className, string $contents): array
     {
         $methods = [];
+        // fqcn => shortname
+        $importedClassNameMap = $this->getImportedClassNameMap($contents);
         // Read relation config and add it to $methods array
         // using reflection rather than instantiating dataobject
         // ReflectionProperty
@@ -242,7 +288,9 @@ class DocblockTagWriterTask extends BuildTask
                 throw new Exception('unknown fancy has_many relation encountered');
             }
             $relationClass = $this->cleanRelationClass($relationClass);
-            $methods[] = " * @method SilverStripe\ORM\HasManyList<$relationClass> $relationName()";
+            $relationType = 'SilverStripe\ORM\HasManyList';
+            $relationType = $importedClassNameMap[$relationType] ?? $relationType;
+            $methods[] = " * @method $relationType<$relationClass> $relationName()";
         }
         foreach ($manyMany as $relationName => $relationClass) {
             if (is_array($relationClass)) {
@@ -255,7 +303,9 @@ class DocblockTagWriterTask extends BuildTask
                 $relationClass = $throughHasOne[$relationClass['to']];
             }
             $relationClass = $this->cleanRelationClass($relationClass);
-            $methods[] = " * @method SilverStripe\ORM\ManyManyList<$relationClass> $relationName()";
+            $relationType = 'SilverStripe\ORM\ManyManyList';
+            $relationType = $importedClassNameMap[$relationType] ?? $relationType;
+            $methods[] = " * @method $relationType<$relationClass> $relationName()";
         }
         foreach ($belongsManyMany as $relationName => $relationClass) {
             if (is_array($relationClass)) {

@@ -273,12 +273,20 @@ class DocblockTagWriterTask extends BuildTask
         // using reflection rather than instantiating dataobject
         // ReflectionProperty
         $hasOne = $this->getProperty($className, 'has_one');
+        $belongsTo = $this->getProperty($className, 'belongs_to');
         $hasMany = $this->getProperty($className, 'has_many');
         $manyMany = $this->getProperty($className, 'many_many');
         $belongsManyMany = $this->getProperty($className, 'belongs_many_many');
         foreach ($hasOne as $relationName => $relationClass) {
             if (is_array($relationClass)) {
                 throw new Exception('has_one fancy relation not supported yet');
+            }
+            $relationClass = $this->cleanRelationClass($relationClass);
+            $methods[] = " * @method $relationClass $relationName()";
+        }
+        foreach ($belongsTo as $relationName => $relationClass) {
+            if (is_array($relationClass)) {
+                throw new Exception('unknown fancy belongs_to relation encountered');
             }
             $relationClass = $this->cleanRelationClass($relationClass);
             $methods[] = " * @method $relationClass $relationName()";
@@ -312,7 +320,9 @@ class DocblockTagWriterTask extends BuildTask
                 throw new Exception('unknown fancy has_many relation encountered');
             }
             $relationClass = $this->cleanRelationClass($relationClass);
-            $methods[] = " * @method SilverStripe\ORM\ManyManyList<$relationClass> $relationName()";
+            $relationType = 'SilverStripe\ORM\ManyManyList';
+            $relationType = $importedClassNameMap[$relationType] ?? $relationType;
+            $methods[] = " * @method $relationType<$relationClass> $relationName()";
         }
         // Sort @methods
         usort($methods, function ($a, $b) {

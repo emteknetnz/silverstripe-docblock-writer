@@ -227,7 +227,17 @@ class DocblockTagWriterTask extends BuildTask
         preg_match_all("#^use ([^ ]+);$#m", $contents, $matches);
         for ($i = 0; $i < count($matches[0]); $i++) {
             $fqcn = $matches[1][$i];
-            $ret[$fqcn] = $classInfo->shortName($fqcn);
+            $shortName = $fqcn;
+            // legacy files
+            if (!in_array($fqcn, [
+                'SilverStripe\GraphQL\Scaffolding\StaticSchema',
+                'Swift_RfcComplianceException',
+                'SilverStripe\Forms\GridField\GridFieldVersionedState',
+                'SilverStripe\Versioned\GraphQL\Operations\ReadVersions',
+            ])) {
+                $shortName = $classInfo->shortName($fqcn);
+            }
+            $ret[$fqcn] = $shortName;
         }
         return $ret;
     }

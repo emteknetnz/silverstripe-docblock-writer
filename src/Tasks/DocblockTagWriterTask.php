@@ -42,16 +42,13 @@ class DocblockTagWriterTask extends BuildTask
             die;
         }
         // tractorcow, colymba
-        $vendors = ['silverstripe', 'dnadesign', 'symbiote', 'cwp'];
+        $vendors = ['silverstripe', 'dnadesign', 'symbiote', 'cwp', 'tractorcow', 'colymba', 'bringyourownideas'];
         foreach ($vendors as $vendor) {
             if (!file_exists("/var/www/vendor/$vendor")) {
                 continue;
             }
             foreach (scandir("/var/www/vendor/$vendor") as $file) {
                 if ($file === '.' || $file === '..') {
-                    continue;
-                }
-                if ($file !== 'framework') {
                     continue;
                 }
                 // $pathFilter = $this->getPathFilter($request);

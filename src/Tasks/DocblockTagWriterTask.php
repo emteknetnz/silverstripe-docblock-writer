@@ -295,6 +295,7 @@ class DocblockTagWriterTask extends BuildTask
             $methods[] = " * @method $relationType<$relationClass> $relationName()";
         }
         foreach ($manyMany as $relationName => $relationClass) {
+            $relationType = 'SilverStripe\ORM\ManyManyList';
             if (is_array($relationClass)) {
                 if (!array_key_exists('through', $relationClass)) {
                     throw new Exception('unknown non "through" many_many fancy relation encountered');
@@ -303,9 +304,9 @@ class DocblockTagWriterTask extends BuildTask
                 $throughConfig = $relationClass['through']::config();
                 $throughHasOne = $throughConfig->get('has_one', Config::UNINHERITED);
                 $relationClass = $throughHasOne[$relationClass['to']];
+                $relationType = 'SilverStripe\ORM\ManyManyThroughList';
             }
             $relationClass = $this->cleanRelationClass($relationClass);
-            $relationType = 'SilverStripe\ORM\ManyManyList';
             $relationType = $importedClassNameMap[$relationType] ?? $relationType;
             $methods[] = " * @method $relationType<$relationClass> $relationName()";
         }

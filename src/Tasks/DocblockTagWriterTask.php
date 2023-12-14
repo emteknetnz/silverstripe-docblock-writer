@@ -224,7 +224,7 @@ class DocblockTagWriterTask extends BuildTask
     {
         $ret = [];
         $classInfo = new ClassInfo();
-        preg_match_all("#^use (.+);$#m", $contents, $matches);
+        preg_match_all("#^use ([^ ]+);$#m", $contents, $matches);
         for ($i = 0; $i < count($matches[0]); $i++) {
             $fqcn = $matches[1][$i];
             $ret[$fqcn] = $classInfo->shortName($fqcn);

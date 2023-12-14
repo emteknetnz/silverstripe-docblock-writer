@@ -32,11 +32,6 @@ class DocblockTagWriterTask extends BuildTask
 {
     public function run($request)
     {
-        $token = Environment::getEnv('GITHUB_TOKEN');
-        if (!$token) {
-            echo "Set GITHUB_TOKEN in .env\n";
-            die;
-        }
         if (!Director::isDev()) {
             echo "This task can only be run in dev mode\n";
             die;
@@ -68,14 +63,6 @@ class DocblockTagWriterTask extends BuildTask
             }
         }
         // git
-    }
-
-    private function cmd(array $cmd, string $dir)
-    {
-        $process = new Process($cmd, $dir, ['GITHUB_TOKEN' => Environment::getEnv('GITHUB_TOKEN')]);
-        $process->run();
-        $out = $process->getOutput();
-        return $out;
     }
 
     private function addNewDocblockToContents(

@@ -135,13 +135,22 @@ class DocblockTagWriterTask extends BuildTask
         return $lines;
     }
 
-    private function cleanRelationClass(string $relationClass): string
-    {
+    private function cleanRelationClass(
+        string $relationClass,
+        array $importedFcqnToShortName,
+        string $namespace
+    ): string {
         // Remove any suffixed relation identifier
         $relationClass = preg_replace('#\.[a-zA-Z0-9]+$#', '', $relationClass);
-        // Use short class name
-        $classInfo = new ClassInfo();
-        $relationClass = $classInfo->shortName($relationClass);
+        // Use short class name if imported
+        if (array_key_exists($relationClass, $importedFcqnToShortName)) {
+            return $importedFcqnToShortName[$relationClass];
+        }
+        // Use short class if on the same namespace
+        $shortName = (new ClassInfo)->shortName($relationClass);
+        if (class_exists("$namespace\\$shortName")) {
+            return $shortName;
+        }
         return $relationClass;
     }
 
@@ -220,7 +229,7 @@ class DocblockTagWriterTask extends BuildTask
         return $currentDocblock;
     }
 
-    private function getImportedClassNameMap(string $contents): array
+    private function getImportedFcqnToShortName(string $contents): array
     {
         $ret = [];
         $classInfo = new ClassInfo();
@@ -262,7 +271,8 @@ class DocblockTagWriterTask extends BuildTask
     {
         $methods = [];
         // fqcn => shortname
-        $importedClassNameMap = $this->getImportedClassNameMap($contents);
+        $namespace = (new ReflectionClass($className))->getNamespaceName();
+        $importedFcqnToShortName = $this->getImportedFcqnToShortName($contents);
         // Read relation config and add it to $methods array
         // using reflection rather than instantiating dataobject
         // ReflectionProperty
@@ -275,23 +285,23 @@ class DocblockTagWriterTask extends BuildTask
             if (is_array($relationClass)) {
                 throw new Exception('has_one fancy relation not supported yet');
             }
-            $relationClass = $this->cleanRelationClass($relationClass);
+            $relationClass = $this->cleanRelationClass($relationClass, $importedFcqnToShortName, $namespace);
             $methods[] = " * @method $relationClass $relationName()";
         }
         foreach ($belongsTo as $relationName => $relationClass) {
             if (is_array($relationClass)) {
                 throw new Exception('unknown fancy belongs_to relation encountered');
             }
-            $relationClass = $this->cleanRelationClass($relationClass);
+            $relationClass = $this->cleanRelationClass($relationClass, $importedFcqnToShortName, $namespace);
             $methods[] = " * @method $relationClass $relationName()";
         }
         foreach ($hasMany as $relationName => $relationClass) {
             if (is_array($relationClass)) {
                 throw new Exception('unknown fancy has_many relation encountered');
             }
-            $relationClass = $this->cleanRelationClass($relationClass);
+            $relationClass = $this->cleanRelationClass($relationClass, $importedFcqnToShortName, $namespace);
             $relationType = 'SilverStripe\ORM\HasManyList';
-            $relationType = $importedClassNameMap[$relationType] ?? $relationType;
+            $relationType = $importedFcqnToShortName[$relationType] ?? $relationType;
             $methods[] = " * @method $relationType<$relationClass> $relationName()";
         }
         foreach ($manyMany as $relationName => $relationClass) {
@@ -306,17 +316,17 @@ class DocblockTagWriterTask extends BuildTask
                 $relationClass = $throughHasOne[$relationClass['to']];
                 $relationType = 'SilverStripe\ORM\ManyManyThroughList';
             }
-            $relationClass = $this->cleanRelationClass($relationClass);
-            $relationType = $importedClassNameMap[$relationType] ?? $relationType;
+            $relationClass = $this->cleanRelationClass($relationClass, $importedFcqnToShortName, $namespace);
+            $relationType = $importedFcqnToShortName[$relationType] ?? $relationType;
             $methods[] = " * @method $relationType<$relationClass> $relationName()";
         }
         foreach ($belongsManyMany as $relationName => $relationClass) {
             if (is_array($relationClass)) {
                 throw new Exception('unknown fancy has_many relation encountered');
             }
-            $relationClass = $this->cleanRelationClass($relationClass);
+            $relationClass = $this->cleanRelationClass($relationClass, $importedFcqnToShortName, $namespace);
             $relationType = 'SilverStripe\ORM\ManyManyList';
-            $relationType = $importedClassNameMap[$relationType] ?? $relationType;
+            $relationType = $importedFcqnToShortName[$relationType] ?? $relationType;
             $methods[] = " * @method $relationType<$relationClass> $relationName()";
         }
         // Sort @methods
